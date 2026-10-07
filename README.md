@@ -22,9 +22,10 @@ Supply configuration through environment variables. Do not commit real credentia
 | `CORS_ALLOWED_ORIGINS` | No | Comma-separated origins; defaults to common local web development ports |
 | `MAIL_USERNAME`, `MAIL_PASSWORD` | For email | SMTP credentials for verification and reset emails |
 | `APP_ADMIN_INITIAL_PASSWORD` | Optional | If set on first startup, creates the admin user |
-| `APP_ADMIN_EMAIL` | No | Admin bootstrap email, defaults to `admin@babyshophub.com` |
+| `APP_ADMIN_EMAIL` | No | Admin bootstrap email, defaults to `admin@example.com` |
+| `APP_DEMO_USERS_INITIAL_PASSWORD` | Optional | If set, creates the John, Jane, and Mike demo accounts with this password |
 
-The initial admin is created only when the configured email does not already exist. Keep the bootstrap password out of source control and unset it after initial setup. Hibernate currently uses `ddl-auto=update`; review the generated schema against the agreed SQL schema before production use and back up existing data before schema changes.
+The initial admin is created only when the configured email does not already exist. Demo accounts are created only when `APP_DEMO_USERS_INITIAL_PASSWORD` is set, and only when each email does not already exist. Keep bootstrap passwords out of source control and unset them after initial setup; do not enable demo-user seeding in production. Hibernate currently uses `ddl-auto=update`; review the generated schema against the agreed SQL schema before production use and back up existing data before schema changes.
 
 ## Run and verify
 
