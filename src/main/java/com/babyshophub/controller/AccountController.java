@@ -13,6 +13,8 @@ import com.babyshophub.dto.AddressResponse;
 import com.babyshophub.dto.ChangePasswordRequest;
 import com.babyshophub.service.AuthService;
 import com.babyshophub.service.AccountService;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/account")
@@ -34,6 +36,11 @@ public class AccountController {
     @PutMapping("/profile")
     public ResponseEntity<?> updateProfile(Principal principal, @Valid @RequestBody ProfileRequest request) {
         return ResponseEntity.ok(accountService.updateProfile(principal.getName(), request));
+    }
+
+    @PostMapping(value = "/profile/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadProfileImage(Principal principal, @RequestPart("image") MultipartFile image) {
+        return ResponseEntity.ok(accountService.updateProfileImage(principal.getName(), image));
     }
 
     @PostMapping("/change-password")

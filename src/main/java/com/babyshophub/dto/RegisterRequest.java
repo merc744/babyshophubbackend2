@@ -3,7 +3,7 @@ package com.babyshophub.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Pattern;
 import java.time.LocalDate;
 
 public class RegisterRequest {
@@ -15,8 +15,11 @@ public class RegisterRequest {
     @NotBlank(message = "Email is required")
     private String email;
 
-    @Size(min = 6, message = "Password must be at least 6 characters")
     @NotBlank(message = "Password is required")
+    @Pattern(
+        regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[-@!*()}{#$%,<>/^:;'&+=_~?]).{8,}$",
+        message = "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special symbol."
+    )
     private String password;
 
     @NotNull(message = "Date of birth is required")

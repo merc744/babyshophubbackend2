@@ -24,23 +24,28 @@ import java.security.SecureRandom;
 public class AuthService {
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final int MAX_LOGIN_ATTEMPTS = 5;
+    private static final int LOCKOUT_MINUTES = 15;
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final AuthenticationManager authenticationManager;
     private final PasswordResetOtpRepository passwordResetOtpRepository;
+    private final ActivityLogService activityLogService;
 
-    public AuthService(UserRepository userRepository, 
-                       PasswordEncoder passwordEncoder, 
-                       EmailService emailService, 
+    public AuthService(UserRepository userRepository,
+                       PasswordEncoder passwordEncoder,
+                       EmailService emailService,
                        AuthenticationManager authenticationManager,
-                       PasswordResetOtpRepository passwordResetOtpRepository) {
+                       PasswordResetOtpRepository passwordResetOtpRepository,
+                       ActivityLogService activityLogService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
         this.authenticationManager = authenticationManager;
         this.passwordResetOtpRepository = passwordResetOtpRepository;
+        this.activityLogService = activityLogService;
     }
 
     public String registerCustomer(RegisterRequest request) {
@@ -66,9 +71,12 @@ public class AuthService {
         user.setEnabled(false);
 
         userRepository.save(user);
-        emailService.sendVerificationEmail(user.getEmail(), otp);
+        boolean emailSent = emailService.sendVerificationEmail(user.getEmail(), otp);
+        activityLogService.record(user, "REGISTER", "Customer account registered");
 
-        return "Registration successful! Please check your email for the verification code.";
+        return emailSent
+            ? "Registration successful! Please check your email for the verification code."
+            : "Registration successful! Check the server console for the verification code.";
     }
 
     public String verifyAccount(String email, String code) {
@@ -91,6 +99,7 @@ public class AuthService {
         user.setVerificationCode(null);
         user.setVerificationCodeExpiresAt(null);
         userRepository.save(user);
+        activityLogService.record(user, "ACCOUNT_VERIFIED", "Email verified successfully");
 
         return "Email verified successfully! You can now log in.";
     }
@@ -108,24 +117,56 @@ public class AuthService {
         user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
         userRepository.save(user);
 
-        emailService.sendVerificationEmail(user.getEmail(), otp);
+        boolean emailSent = emailService.sendVerificationEmail(user.getEmail(), otp);
 
-        return "A new verification code has been sent to your email.";
+        return emailSent
+            ? "A new verification code has been sent to your email."
+            : "A new verification code was printed in the server console.";
     }
 
     public Authentication loginUser(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Invalid email or password"));
 
+        if (user.isLocked()) {
+            throw new RuntimeException("Account temporarily locked due to too many failed login attempts. Please try again later.");
+        }
+
         if (!user.isEnabled()) {
             throw new RuntimeException("Account not verified. Please verify your email.");
         }
 
-        return authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+            );
+            if (user.getFailedLoginAttempts() > 0 || user.getLockedUntil() != null) {
+                user.setFailedLoginAttempts(0);
+                user.setLockedUntil(null);
+                userRepository.save(user);
+            }
+            return authentication;
+        } catch (org.springframework.security.core.AuthenticationException e) {
+            registerFailedLogin(user);
+            throw new RuntimeException("Invalid email or password");
+        }
     }
 
+    private void registerFailedLogin(User user) {
+        int attempts = user.getFailedLoginAttempts() + 1;
+        user.setFailedLoginAttempts(attempts);
+        if (attempts >= MAX_LOGIN_ATTEMPTS) {
+            user.setLockedUntil(LocalDateTime.now().plusMinutes(LOCKOUT_MINUTES));
+            user.setFailedLoginAttempts(0);
+            activityLogService.record(user, "ACCOUNT_LOCKED",
+                    "Account locked for " + LOCKOUT_MINUTES + " minutes after " + MAX_LOGIN_ATTEMPTS + " failed login attempts");
+        }
+        userRepository.save(user);
+    }
+
+    public void recordLogin(String email) {
+        activityLogService.record(email, "LOGIN", "Successful login");
+    }
     private String generateVerificationCode() {
         int code = 100000 + SECURE_RANDOM.nextInt(900000);
         return String.valueOf(code);
@@ -151,9 +192,11 @@ public class AuthService {
         otp.setExpiresAt(LocalDateTime.now().plusMinutes(10));
         passwordResetOtpRepository.save(otp);
 
-        emailService.sendPasswordResetEmail(user.getEmail(), resetCode);
+        boolean emailSent = emailService.sendPasswordResetEmail(user.getEmail(), resetCode);
 
-        return "Password reset code has been sent to your email.";
+        return emailSent
+            ? "Password reset code has been sent to your email."
+            : "Password reset code was printed in the server console.";
     }
 
     public String resetPassword(ResetPasswordRequest request) {
@@ -180,6 +223,7 @@ public class AuthService {
         otp.setUsed(true);
         passwordResetOtpRepository.save(otp);
         userRepository.save(user);
+        activityLogService.record(user, "PASSWORD_RESET", "Password reset via reset code");
 
         return "Password has been successfully reset. You can now log in.";
     }

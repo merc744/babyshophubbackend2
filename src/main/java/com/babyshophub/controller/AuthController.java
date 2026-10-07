@@ -48,6 +48,7 @@ public class AuthController {
             SecurityContextHolder.setContext(context);
             servletRequest.getSession(true).setAttribute(
                     HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
+            authService.recordLogin(request.getEmail());
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
             return ResponseEntity.status(401).body(e.getMessage());
@@ -73,7 +74,7 @@ public class AuthController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-    
+
     @PostMapping("/forgot-password")
     public ResponseEntity<String> forgotPassword(
             @RequestParam(required = false) String email,
@@ -97,7 +98,7 @@ public class AuthController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-    
+
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletRequest servletRequest) {
         HttpSession session = servletRequest.getSession(false);
@@ -106,5 +107,4 @@ public class AuthController {
         }
         SecurityContextHolder.clearContext();
         return ResponseEntity.noContent().build();
-    }
-}
+    }}

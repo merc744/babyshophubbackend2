@@ -1,6 +1,7 @@
 package com.babyshophub;
 
 import com.babyshophub.dto.OrderResponse;
+import com.babyshophub.dto.RegisterRequest;
 import com.babyshophub.entity.Address;
 import com.babyshophub.entity.Brand;
 import com.babyshophub.entity.Category;
@@ -13,6 +14,7 @@ import com.babyshophub.repository.CategoryRepository;
 import com.babyshophub.repository.ProductRepository;
 import com.babyshophub.repository.UserRepository;
 import com.babyshophub.service.CartService;
+import com.babyshophub.service.AuthService;
 import com.babyshophub.service.OrderService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -34,10 +36,27 @@ class BabyshophubApplicationTests {
 	@Autowired private ProductRepository productRepository;
 	@Autowired private AddressRepository addressRepository;
 	@Autowired private CartService cartService;
+	@Autowired private AuthService authService;
 	@Autowired private OrderService orderService;
 
 	@Test
 	void contextLoads() {
+	}
+
+	@Test
+	void registrationUsesConsoleVerificationCodeInLocalMode() {
+		String email = "register-" + java.util.UUID.randomUUID() + "@example.com";
+		RegisterRequest request = new RegisterRequest();
+		request.setName("Registration test");
+		request.setEmail(email);
+		request.setPassword("test-password");
+		request.setDob(LocalDate.of(2000, 1, 1));
+		request.setPhoneNumber("08000000000");
+
+		String response = authService.registerCustomer(request);
+
+		Assertions.assertTrue(response.contains("server console"));
+		Assertions.assertTrue(userRepository.findByEmail(email).orElseThrow().getVerificationCode().matches("\\d{6}"));
 	}
 
 	@Test

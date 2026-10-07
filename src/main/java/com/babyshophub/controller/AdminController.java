@@ -71,6 +71,18 @@ public class AdminController {
         return ResponseEntity.ok(adminService.listUsers());
     }
 
+    // Admin: View all recorded user activity (login, registration, status changes, etc.)
+    @GetMapping("/activity")
+    public ResponseEntity<List<ActivityResponse>> getActivity() {
+        return ResponseEntity.ok(adminService.allActivity());
+    }
+
+    // Admin: View activity for a single user
+    @GetMapping("/users/{id}/activity")
+    public ResponseEntity<List<ActivityResponse>> getUserActivity(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.activity(id));
+    }
+
     @GetMapping("/products")
     public ResponseEntity<List<ProductResponse>> getProducts() { return ResponseEntity.ok(productService.getAllProducts().stream().map(ProductResponse::from).toList()); }
 

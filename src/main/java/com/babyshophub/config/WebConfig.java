@@ -17,7 +17,7 @@ public class WebConfig implements WebMvcConfigurer {
     public void addCorsMappings(org.springframework.web.servlet.config.annotation.CorsRegistry registry) {
         registry.addMapping("/**")
                 .allowedOrigins(Arrays.stream(allowedOrigins.split(","))
-                        .map(String::trim)
+                    .map(origin -> origin == null ? "" : origin.trim())
                         .filter(origin -> !origin.isEmpty())
                         .toArray(String[]::new))
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")

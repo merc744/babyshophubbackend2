@@ -4,7 +4,6 @@ import com.babyshophub.entity.User;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails; // Built-in Spring import
 import java.util.Collection;
-import java.util.Collections;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import java.util.stream.Collectors;
 public class CustomUserDetails implements UserDetails {

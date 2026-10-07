@@ -38,6 +38,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, String>> handleRuntimeException(RuntimeException ex) {
+        // Genuine server faults must not be reported as client errors (400).
+        // IllegalStateException/NullPointerException signal unexpected failures, not bad input.
+        if (ex instanceof IllegalStateException || ex instanceof NullPointerException) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "An unexpected server error occurred."));
+        }
         Map<String, String> errorResponse = new HashMap<>();
         errorResponse.put("error", ex.getMessage() == null || ex.getMessage().isBlank()
                 ? "Request could not be completed."
