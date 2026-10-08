@@ -4,6 +4,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.UUID;
 import java.io.InputStream;
 import javax.imageio.ImageIO;
@@ -122,6 +123,26 @@ public class ProductService {
         if (request.getDescription() != null) product.setDescription(request.getDescription());
         if (request.getPrice() != null) product.setPrice(request.getPrice());
         if (request.getStockQty() != null) product.setStockQty(request.getStockQty());
+        return productRepository.save(product);
+    }
+
+    public Product addProductImages(Long id, List<MultipartFile> files) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
+        if (files == null || files.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "At least one product image is required");
+        }
+
+        List<String> imageUrls = product.getImageUrls() == null
+                ? new ArrayList<>()
+                : new ArrayList<>(product.getImageUrls());
+        for (MultipartFile file : files) {
+            if (file == null || file.isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Product images cannot be empty");
+            }
+            imageUrls.add(saveImageLocally(file));
+        }
+        product.setImageUrls(imageUrls);
         return productRepository.save(product);
     }
 

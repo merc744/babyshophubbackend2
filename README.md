@@ -42,6 +42,19 @@ Run the automated test suite:
 ./mvnw.cmd test
 ```
 
+## Run with Docker
+
+Copy `.env.example` to `.env` and set the MySQL and SMTP credentials. `DB_URL` in the example uses `host.docker.internal` for a MySQL server running on the host; change it if your database uses another hostname or runs in a separate container. The configured MySQL database must already exist.
+
+Build and start the backend from the repository root:
+
+```powershell
+docker build -t babyshophub-backend .
+docker run --name babyshophub-backend --env-file .env -p 8081:8081 -v babyshophub-uploads:/app/uploads babyshophub-backend
+```
+
+The named Docker volume keeps uploaded product and profile images across container restarts. The `.env` file is ignored by Git and excluded from the image build context; do not put real credentials in `.env.example`.
+
 Swagger UI is available at `/swagger-ui/index.html`; the OpenAPI document is at `/v3/api-docs`.
 
 ## Authentication
