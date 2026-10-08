@@ -20,11 +20,13 @@ Supply configuration through environment variables. Do not commit real credentia
 | `DB_USERNAME` | No | `root` |
 | `DB_PASSWORD` | No | Empty string; set a local MySQL password as needed |
 | `CORS_ALLOWED_ORIGINS` | No | Comma-separated origins; defaults to common local web development ports |
-| `MAIL_USERNAME`, `MAIL_PASSWORD` | For email | SMTP credentials for verification and reset emails |
+| `MAIL_USERNAME`, `MAIL_PASSWORD` | Yes for SMTP delivery | SMTP credentials for verification and reset emails |
 | `APP_ADMIN_INITIAL_PASSWORD` | Optional | If set on first startup, creates the admin user |
 | `APP_ADMIN_EMAIL` | No | Admin bootstrap email, defaults to `admin@babyshophub.com` |
 
 The initial admin is created only when the configured email does not already exist. Keep the bootstrap password out of source control and unset it after initial setup. Hibernate currently uses `ddl-auto=update`; review the generated schema against the agreed SQL schema before production use and back up existing data before schema changes.
+
+The `local` profile sends verification codes by email and requires `MAIL_USERNAME` and `MAIL_PASSWORD`; only the automated test profile logs codes to the server console.
 
 ## Run and verify
 
@@ -44,7 +46,7 @@ Swagger UI is available at `/swagger-ui/index.html`; the OpenAPI document is at 
 
 ## Authentication
 
-Register and verify an account, then call `POST /api/auth/login`. A successful login returns `204` and establishes a Spring Security session cookie. Send that cookie with protected requests; browser clients must enable credentials. `POST /api/auth/logout` invalidates the session. Admin endpoints require the `ROLE_ADMIN` role.
+Register and verify an account, then call `POST /api/auth/login`. If an unverified user submits the correct password, the backend emails a fresh verification code and returns `202 Accepted`; submit the code to `POST /api/auth/verify` before logging in again. A successful login returns `204` and establishes a Spring Security session cookie. Send that cookie with protected requests; browser clients must enable credentials. `POST /api/auth/logout` invalidates the session. Admin endpoints require the `ROLE_ADMIN` role.
 
 ## API areas
 

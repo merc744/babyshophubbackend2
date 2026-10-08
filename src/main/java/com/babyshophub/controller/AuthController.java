@@ -9,6 +9,8 @@ import com.babyshophub.dto.ResendOtpRequest;
 import com.babyshophub.dto.ResetPasswordRequest;
 import com.babyshophub.dto.VerifyRequest;
 import com.babyshophub.dto.EmailRequest;
+import com.babyshophub.exception.LoginFailedException;
+import com.babyshophub.exception.LoginVerificationRequiredException;
 import com.babyshophub.service.AuthService;
 
 import jakarta.validation.Valid;
@@ -50,7 +52,9 @@ public class AuthController {
                     HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
             authService.recordLogin(request.getEmail());
             return ResponseEntity.noContent().build();
-        } catch (RuntimeException e) {
+        } catch (LoginVerificationRequiredException e) {
+            return ResponseEntity.accepted().body(e.getMessage());
+        } catch (LoginFailedException e) {
             return ResponseEntity.status(401).body(e.getMessage());
         }
     }

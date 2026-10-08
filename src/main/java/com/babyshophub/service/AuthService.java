@@ -6,6 +6,8 @@ import com.babyshophub.dto.RegisterRequest;
 import com.babyshophub.dto.ResetPasswordRequest;
 import com.babyshophub.entity.User;
 import com.babyshophub.entity.PasswordResetOtp;
+import com.babyshophub.exception.LoginFailedException;
+import com.babyshophub.exception.LoginVerificationRequiredException;
 import com.babyshophub.enums.Role;
 import com.babyshophub.repository.UserRepository;
 import com.babyshophub.repository.PasswordResetOtpRepository;
@@ -126,14 +128,19 @@ public class AuthService {
 
     public Authentication loginUser(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+                .orElseThrow(() -> new LoginFailedException("Invalid email or password"));
 
         if (user.isLocked()) {
-            throw new RuntimeException("Account temporarily locked due to too many failed login attempts. Please try again later.");
+            throw new LoginFailedException("Account temporarily locked due to too many failed login attempts. Please try again later.");
         }
 
         if (!user.isEnabled()) {
-            throw new RuntimeException("Account not verified. Please verify your email.");
+            if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+                registerFailedLogin(user);
+                throw new LoginFailedException("Invalid email or password");
+            }
+            String response = resendVerificationCode(user.getEmail());
+            throw new LoginVerificationRequiredException(response);
         }
 
         try {
@@ -148,7 +155,7 @@ public class AuthService {
             return authentication;
         } catch (org.springframework.security.core.AuthenticationException e) {
             registerFailedLogin(user);
-            throw new RuntimeException("Invalid email or password");
+            throw new LoginFailedException("Invalid email or password");
         }
     }
 

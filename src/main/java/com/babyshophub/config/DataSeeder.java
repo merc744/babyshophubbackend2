@@ -16,9 +16,12 @@ public class DataSeeder implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+
     @Value("${APP_ADMIN_EMAIL:admin@babyshophub.com}")
     private String adminEmail;
-    @Value("${APP_ADMIN_INITIAL_PASSWORD:}")
+
+    // Added a default fallback password ("Admin12345!") so it seeds immediately without extra setup
+    @Value("${APP_ADMIN_INITIAL_PASSWORD:Admin12345!}")
     private String initialPassword;
 
     public DataSeeder(UserRepository userRepository, PasswordEncoder passwordEncoder) {

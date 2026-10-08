@@ -2,6 +2,7 @@ package com.babyshophub.service;
 
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.MailException;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
 import org.slf4j.Logger;
@@ -32,7 +33,7 @@ public class EmailService {
         message.setSubject("BabyShopHub - Email Verification Code");
         message.setText("Your verification code is: " + verificationCode + 
                         "\n\nPlease use this code to activate your account. It expires in 15 minutes.");
-        mailSender.send(message);
+        sendEmail(toEmail, message);
         return true;
     }
 
@@ -48,7 +49,16 @@ public class EmailService {
         message.setText("Your password reset code is: " + resetCode
                 + "\n\nEnter this code to reset your password. It expires in 10 minutes."
                 + " If you did not request a reset, you can ignore this email.");
-        mailSender.send(message);
+        sendEmail(toEmail, message);
         return true;
+    }
+
+    private void sendEmail(String toEmail, SimpleMailMessage message) {
+        try {
+            mailSender.send(message);
+        } catch (MailException e) {
+            LOGGER.error("Failed to send email to {}", toEmail, e);
+            throw new IllegalStateException("Email could not be sent. Check SMTP configuration.", e);
+        }
     }
 }

@@ -1,6 +1,7 @@
 package com.babyshophub;
 
 import com.babyshophub.dto.OrderResponse;
+import com.babyshophub.dto.LoginRequest;
 import com.babyshophub.dto.RegisterRequest;
 import com.babyshophub.entity.Address;
 import com.babyshophub.entity.Brand;
@@ -8,6 +9,7 @@ import com.babyshophub.entity.Category;
 import com.babyshophub.entity.Product;
 import com.babyshophub.entity.User;
 import com.babyshophub.enums.Role;
+import com.babyshophub.exception.LoginVerificationRequiredException;
 import com.babyshophub.repository.AddressRepository;
 import com.babyshophub.repository.BrandRepository;
 import com.babyshophub.repository.CategoryRepository;
@@ -57,6 +59,35 @@ class BabyshophubApplicationTests {
 
 		Assertions.assertTrue(response.contains("server console"));
 		Assertions.assertTrue(userRepository.findByEmail(email).orElseThrow().getVerificationCode().matches("\\d{6}"));
+	}
+
+	@Test
+	void loginForUnverifiedUserEmailsNewVerificationCodeAfterPasswordCheck() {
+		String email = "login-otp-" + java.util.UUID.randomUUID() + "@example.com";
+		RegisterRequest registration = new RegisterRequest();
+		registration.setName("Login OTP test");
+		registration.setEmail(email);
+		registration.setPassword("test-password");
+		registration.setDob(LocalDate.of(2000, 1, 1));
+		registration.setPhoneNumber("08000000000");
+		authService.registerCustomer(registration);
+
+		LoginRequest login = new LoginRequest();
+		login.setEmail(email);
+		login.setPassword("test-password");
+
+		String registrationCode = userRepository.findByEmail(email).orElseThrow().getVerificationCode();
+		login.setPassword("wrong-password");
+		Assertions.assertThrows(RuntimeException.class, () -> authService.loginUser(login));
+		Assertions.assertEquals(registrationCode,
+				userRepository.findByEmail(email).orElseThrow().getVerificationCode());
+
+		login.setPassword("test-password");
+		LoginVerificationRequiredException exception = Assertions.assertThrows(
+				LoginVerificationRequiredException.class, () -> authService.loginUser(login));
+		Assertions.assertTrue(exception.getMessage().contains("verification code"));
+		Assertions.assertTrue(userRepository.findByEmail(email).orElseThrow()
+				.getVerificationCode().matches("\\d{6}"));
 	}
 
 	@Test
